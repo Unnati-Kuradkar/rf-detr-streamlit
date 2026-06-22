@@ -1,0 +1,7 @@
+streamlit
+rfdetr
+supervision
+pillow
+numpy
+torch
+torchvision
