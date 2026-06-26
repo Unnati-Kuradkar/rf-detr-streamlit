@@ -23,11 +23,12 @@ if uploaded_file:
 
     st.write("Detecting objects...")
     detections = model.predict(image_np)
+    detections = model.predict(image_np)
 
     # Draw boxes
-    box_annotator = sv.BoxAnnotator()
+    bounding_box_annotator = sv.BoxAnnotator()
 
-    annotated_image = box_annotator.annotate(
+    annotated_image = bounding_box_annotator.annotate(
         scene=image_np.copy(),
         detections=detections
     )
