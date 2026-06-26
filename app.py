@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 from rfdetr import RFDETRBase
+import supervision as sv
 
 st.title("RF-DETR Object Detection")
 
