@@ -121,3 +121,32 @@ if input_type == "Image":
                 )
 
 # =================================================
+# ==========================
+# VIDEO DETECTION
+# ==========================
+if input_type == "Video":
+
+    st.success("🎥 VIDEO MODE ACTIVE")
+
+    uploaded_video = st.file_uploader(
+        "Upload Video",
+        type=["mp4", "avi", "mov"],
+        key="video_uploader"
+    )
+
+    if uploaded_video is not None:
+
+        st.success("✅ Video uploaded successfully")
+
+        st.video(uploaded_video)
+
+        st.write("Video Name:", uploaded_video.name)
+        st.write("Video Size:", round(uploaded_video.size / (1024 * 1024), 2), "MB")
+
+        start_btn = st.button(
+            "▶ Start Detection",
+            key="start_detection_btn"
+        )
+
+        if start_btn:
+            st.success("🚀 Detection started...")
