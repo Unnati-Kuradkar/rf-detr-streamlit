@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 import cv2
 import tempfile
-
+import supervision as sv
 from rfdetr import RFDETRNano
 import torch
 
