@@ -1,22 +1,26 @@
 import streamlit as st
 import numpy as np
 from PIL import Image
-from rfdetr import RFDETRBase
-import supervision as sv
 import cv2
 import tempfile
+
+from rfdetr import RFDETRBase
+import supervision as sv
 
 st.set_page_config(
     page_title="RF-DETR Object Detection",
     layout="wide"
 )
 
-st.title("RF-DETR Object Detection")
+st.title("🚗 RF-DETR Object Detection")
 
+# ------------------------------
 # Load model only once
+# ------------------------------
 @st.cache_resource
 def load_model():
     model = RFDETRBase()
+    model.optimize_for_inference()
     return model
 
 model = load_model()
@@ -26,9 +30,9 @@ option = st.radio(
     ["Image", "Video"]
 )
 
-# ==========================
+# =====================================================
 # IMAGE DETECTION
-# ==========================
+# =====================================================
 if option == "Image":
 
     uploaded_image = st.file_uploader(
@@ -40,6 +44,12 @@ if option == "Image":
 
         image = Image.open(uploaded_image).convert("RGB")
         image_np = np.array(image)
+
+        st.image(
+            image,
+            caption="Uploaded Image",
+            width="stretch"
+        )
 
         with st.spinner("Detecting objects..."):
 
@@ -55,7 +65,7 @@ if option == "Image":
         st.image(
             annotated_image,
             caption="Detected Objects",
-            use_container_width=True
+            width="stretch"
         )
 
         st.subheader("Detected Objects")
@@ -66,10 +76,10 @@ if option == "Image":
         ):
             st.write(f"✅ {name} ({conf:.2f})")
 
-# ==========================
+# =====================================================
 # VIDEO DETECTION
-# ==========================
-if option == "Video":
+# =====================================================
+else:
 
     uploaded_video = st.file_uploader(
         "Upload Video",
@@ -78,16 +88,16 @@ if option == "Video":
 
     if uploaded_video:
 
-        st.info("Processing video... Please wait.")
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        tfile.write(uploaded_video.read())
 
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
-        temp_file.write(uploaded_video.read())
+        cap = cv2.VideoCapture(tfile.name)
 
-        cap = cv2.VideoCapture(temp_file.name)
+        frame_placeholder = st.empty()
 
-        stframe = st.empty()
-
-        box_annotator = sv.BoxAnnotator()
+        st.warning(
+            "Processing every 10th frame for faster speed."
+        )
 
         frame_count = 0
 
@@ -100,26 +110,29 @@ if option == "Video":
 
             frame_count += 1
 
-            # Process only every 10th frame
+            # Skip frames
             if frame_count % 10 != 0:
                 continue
 
-            # Resize frame for faster inference
-            frame = cv2.resize(frame, (640, 480))
+            frame_rgb = cv2.cvtColor(
+                frame,
+                cv2.COLOR_BGR2RGB
+            )
 
-            detections = model.predict(frame)
+            detections = model.predict(frame_rgb)
 
-            annotated_frame = box_annotator.annotate(
-                scene=frame.copy(),
+            box_annotator = sv.BoxAnnotator()
+
+            annotated = box_annotator.annotate(
+                scene=frame_rgb.copy(),
                 detections=detections
             )
 
-            stframe.image(
-                annotated_frame,
-                channels="BGR",
-                use_container_width=True
+            frame_placeholder.image(
+                annotated,
+                width="stretch"
             )
 
         cap.release()
 
-        st.success("Video processing completed!")
+        st.success("Video Processing Completed!")
