@@ -1,175 +1,84 @@
 import streamlit as st
 import numpy as np
-import cv2
-import tempfile
 from PIL import Image
-import supervision as sv
-import torch
-
 from rfdetr import RFDETRNano
+import supervision as sv
 
-st.set_page_config(
-    page_title="RF-DETR Object Detection",
-    layout="wide"
-)
+st.set_page_config(page_title="Object Detection", layout="wide")
 
 st.title("🚗 RF-DETR Object Detection")
 
-# ----------------------------
-# Load Model Only Once
-# ----------------------------
+# Load model only once
 @st.cache_resource
 def load_model():
     model = RFDETRNano()
-
-    try:
-        model.optimize_for_inference(
-            dtype=torch.float16
-        )
-    except:
-        pass
-
     return model
-
 
 model = load_model()
 
-# ----------------------------
-# Mode Selection
-# ----------------------------
-option = st.radio(
-    "Choose Input Type",
-    ["Image", "Video"]
+uploaded_file = st.file_uploader(
+    "Upload Image",
+    type=["jpg", "jpeg", "png"]
 )
 
-# =====================================================
-# IMAGE DETECTION
-# =====================================================
-if option == "Image":
+if uploaded_file:
 
-    uploaded_file = st.file_uploader(
-        "Upload Image",
-        type=["jpg", "jpeg", "png"]
-    )
+    image = Image.open(uploaded_file).convert("RGB")
+    image_np = np.array(image)
 
-    if uploaded_file:
+    st.image(image, caption="Uploaded Image", width="stretch")
 
-        image = Image.open(uploaded_file).convert("RGB")
-        image_np = np.array(image)
+    with st.spinner("Detecting Objects..."):
 
-        st.image(
-            image,
-            caption="Uploaded Image",
-            width="stretch"
+        detections = model.predict(image_np)
+
+        # Draw boxes
+        box_annotator = sv.BoxAnnotator()
+
+        annotated_image = box_annotator.annotate(
+            scene=image_np.copy(),
+            detections=detections
         )
 
-        with st.spinner("Detecting Objects..."):
-
-            detections = model.predict(image_np)
-
-            box_annotator = sv.BoxAnnotator()
-
-            annotated_image = box_annotator.annotate(
-                scene=image_np.copy(),
-                detections=detections
-            )
-
-        st.image(
-            annotated_image,
-            caption="Detected Objects",
-            width="stretch"
-        )
-
-        st.subheader("Detected Objects")
-
-        try:
-            for name, conf in zip(
-                detections.data["class_name"],
-                detections.confidence
-            ):
-                st.write(
-                    f"✅ {name} ({conf:.2f})"
-                )
-        except:
-            st.info("Objects detected")
-
-# =====================================================
-# VIDEO DETECTION
-# =====================================================
-else:
-
-    uploaded_video = st.file_uploader(
-        "Upload Video",
-        type=["mp4", "avi", "mov"]
+    st.image(
+        annotated_image,
+        caption="Detected Objects",
+        width="stretch"
     )
 
-    if uploaded_video:
+    # ==========================
+    # OBJECT COUNT
+    # ==========================
+    total_objects = len(detections)
 
-        st.video(uploaded_video)
+    st.success(f"🎯 Total Objects Detected: {total_objects}")
 
-        if st.button("Start Detection"):
+    # ==========================
+    # OBJECT WISE COUNT
+    # ==========================
+    object_counts = {}
 
-            with tempfile.NamedTemporaryFile(
-                delete=False,
-                suffix=".mp4"
-            ) as tmp_file:
+    if "class_name" in detections.data:
 
-                tmp_file.write(
-                    uploaded_video.read()
-                )
+        for cls in detections.data["class_name"]:
+            object_counts[cls] = object_counts.get(cls, 0) + 1
 
-                video_path = tmp_file.name
+        st.subheader("📊 Object Summary")
 
-            cap = cv2.VideoCapture(video_path)
+        for obj, count in object_counts.items():
+            st.write(f"✅ {obj}: {count}")
 
-            frame_placeholder = st.empty()
+    # ==========================
+    # DETAILED LIST
+    # ==========================
+    st.subheader("📋 Detection Details")
 
-            frame_count = 0
+    if "class_name" in detections.data:
 
-            # Process every 60th frame
-            frame_skip = 60
-
-            st.info(
-                "⚡ Fast Mode Enabled"
-            )
-
-            while cap.isOpened():
-
-                ret, frame = cap.read()
-
-                if not ret:
-                    break
-
-                frame_count += 1
-
-                if frame_count % frame_skip != 0:
-                    continue
-
-                frame_rgb = cv2.cvtColor(
-                    frame,
-                    cv2.COLOR_BGR2RGB
-                )
-
-                detections = model.predict(
-                    frame_rgb
-                )
-
-                box_annotator = sv.BoxAnnotator()
-
-                annotated_frame = (
-                    box_annotator.annotate(
-                        scene=frame_rgb.copy(),
-                        detections=detections
-                    )
-                )
-
-                frame_placeholder.image(
-                    annotated_frame,
-                    width="stretch"
-                )
-
-            cap.release()
-
-            st.success(
-                "✅ Detection Complete"
+        for name, conf in zip(
+            detections.data["class_name"],
+            detections.confidence
+        ):
+            st.write(
+                f"🔹 {name} ({conf:.2f})"
             )
