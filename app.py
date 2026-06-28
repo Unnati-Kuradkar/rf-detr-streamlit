@@ -5,12 +5,22 @@ import cv2
 import tempfile
 
 from rfdetr import RFDETRNano
-import supervision as sv
+import torch
 
-st.set_page_config(
-    page_title="RF-DETR Object Detection",
-    layout="wide"
-)
+@st.cache_resource
+def load_model():
+    model = RFDETRNano()
+
+    try:
+        model.optimize_for_inference(
+            dtype=torch.float16
+        )
+    except:
+        pass
+
+    return model
+
+model = load_model()
 
 st.title("🚗 RF-DETR Object Detection")
 
