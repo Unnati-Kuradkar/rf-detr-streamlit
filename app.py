@@ -4,7 +4,7 @@ from PIL import Image
 import cv2
 import tempfile
 
-from rfdetr import RFDETRBase
+from rfdetr import RFDETRNano
 import supervision as sv
 
 st.set_page_config(
@@ -14,13 +14,12 @@ st.set_page_config(
 
 st.title("🚗 RF-DETR Object Detection")
 
-# ------------------------------
-# Load model only once
-# ------------------------------
+# =========================
+# LOAD MODEL ONCE
+# =========================
 @st.cache_resource
 def load_model():
-    model = RFDETRBase()
-    model.optimize_for_inference()
+    model = RFDETRNano()
     return model
 
 model = load_model()
@@ -30,9 +29,9 @@ option = st.radio(
     ["Image", "Video"]
 )
 
-# =====================================================
+# ==================================================
 # IMAGE DETECTION
-# =====================================================
+# ==================================================
 if option == "Image":
 
     uploaded_image = st.file_uploader(
@@ -51,7 +50,7 @@ if option == "Image":
             width="stretch"
         )
 
-        with st.spinner("Detecting objects..."):
+        with st.spinner("Detecting Objects..."):
 
             detections = model.predict(image_np)
 
@@ -76,9 +75,9 @@ if option == "Image":
         ):
             st.write(f"✅ {name} ({conf:.2f})")
 
-# =====================================================
+# ==================================================
 # VIDEO DETECTION
-# =====================================================
+# ==================================================
 else:
 
     uploaded_video = st.file_uploader(
@@ -88,51 +87,85 @@ else:
 
     if uploaded_video:
 
-        tfile = tempfile.NamedTemporaryFile(delete=False)
-        tfile.write(uploaded_video.read())
+        st.video(uploaded_video)
 
-        cap = cv2.VideoCapture(tfile.name)
+        if st.button("Start Detection"):
 
-        frame_placeholder = st.empty()
-
-        st.warning(
-            "Processing every 10th frame for faster speed."
-        )
-
-        frame_count = 0
-
-        while cap.isOpened():
-
-            ret, frame = cap.read()
-
-            if not ret:
-                break
-
-            frame_count += 1
-
-            # Skip frames
-            if frame_count % 10 != 0:
-                continue
-
-            frame_rgb = cv2.cvtColor(
-                frame,
-                cv2.COLOR_BGR2RGB
+            temp_file = tempfile.NamedTemporaryFile(
+                delete=False,
+                suffix=".mp4"
             )
 
-            detections = model.predict(frame_rgb)
+            temp_file.write(uploaded_video.read())
+            temp_file.close()
+
+            cap = cv2.VideoCapture(temp_file.name)
+
+            frame_placeholder = st.empty()
+            progress_bar = st.progress(0)
+
+            frame_count = 0
+            processed_frames = 0
+            MAX_FRAMES = 100
 
             box_annotator = sv.BoxAnnotator()
 
-            annotated = box_annotator.annotate(
-                scene=frame_rgb.copy(),
-                detections=detections
+            st.info(
+                "Fast Mode: Processing every 60th frame"
             )
 
-            frame_placeholder.image(
-                annotated,
-                width="stretch"
+            while cap.isOpened():
+
+                ret, frame = cap.read()
+
+                if not ret:
+                    break
+
+                frame_count += 1
+
+                # Skip most frames
+                if frame_count % 60 != 0:
+                    continue
+
+                processed_frames += 1
+
+                if processed_frames > MAX_FRAMES:
+                    break
+
+                frame_rgb = cv2.cvtColor(
+                    frame,
+                    cv2.COLOR_BGR2RGB
+                )
+
+                # Resize for speed
+                frame_rgb = cv2.resize(
+                    frame_rgb,
+                    (640, 360)
+                )
+
+                detections = model.predict(
+                    frame_rgb
+                )
+
+                annotated = box_annotator.annotate(
+                    scene=frame_rgb.copy(),
+                    detections=detections
+                )
+
+                frame_placeholder.image(
+                    annotated,
+                    width="stretch"
+                )
+
+                progress_bar.progress(
+                    min(
+                        processed_frames / MAX_FRAMES,
+                        1.0
+                    )
+                )
+
+            cap.release()
+
+            st.success(
+                f"Detection Complete! Processed {processed_frames} frames."
             )
-
-        cap.release()
-
-        st.success("Video Processing Completed!")
