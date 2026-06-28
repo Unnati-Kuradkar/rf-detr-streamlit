@@ -6,5 +6,6 @@ torch
 torchvision
 
 opencv-python-headless
+
 supervision
 rfdetr
