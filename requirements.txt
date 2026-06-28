@@ -1,10 +1,10 @@
-streamlit==1.36.0
-numpy==1.26.4
-Pillow==11.2.1
+streamlit
+numpy
+Pillow
 
 torch
 torchvision
 
-opencv-python-headless==4.8.1.78
-supervision==0.29.1
-rfdetr==1.8.2
+opencv-python-headless
+supervision
+rfdetr
