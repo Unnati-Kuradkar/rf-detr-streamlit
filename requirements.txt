@@ -1,8 +1,8 @@
 streamlit
 numpy
-pillow
+Pillow
 opencv-python-headless
-supervision
-rfdetr
 torch
 torchvision
+rfdetr
+supervision
