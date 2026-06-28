@@ -64,24 +64,29 @@ if option == "Video":
 
         box_annotator = sv.BoxAnnotator()
 
-        while cap.isOpened():
 
-            ret, frame = cap.read()
+    while cap.isOpened():
 
-            if not ret:
-                break
+        ret, frame = cap.read()
 
-            detections = model.predict(frame)
+        if not ret:
+            break
 
-            annotated_frame = box_annotator.annotate(
-                scene=frame.copy(),
-                detections=detections
-            )
+        frame_count += 1
 
-            stframe.image(
-                annotated_frame,
-                channels="BGR",
-                use_container_width=True
-            )
+        if frame_count % 10 != 0:
+            continue
 
+        detections = model.predict(frame)
+
+        annotated_frame = box_annotator.annotate(
+            scene=frame.copy(),
+            detections=detections
+    )
+
+    stframe.image(
+        annotated_frame,
+        channels="BGR",
+        use_container_width=True
+    )
         cap.release()
