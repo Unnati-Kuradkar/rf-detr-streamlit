@@ -3,45 +3,85 @@ import numpy as np
 from PIL import Image
 from rfdetr import RFDETRBase
 import supervision as sv
+import cv2
+import tempfile
 
 st.title("RF-DETR Object Detection")
 
-uploaded_file = st.file_uploader(
-    "Upload Image",
-    type=["jpg", "jpeg", "png"]
+option = st.radio(
+    "Choose Input Type",
+    ["Image", "Video"]
 )
 
-if uploaded_file:
+model = RFDETRBase()
 
-    image = Image.open(uploaded_file).convert("RGB")
-    image_np = np.array(image)
+# ---------------- IMAGE ----------------
 
-    st.image(image, caption="Uploaded Image")
+if option == "Image":
 
-    st.write("Loading model...")
-    model = RFDETRBase()
-
-    st.write("Detecting objects...")
-    detections = model.predict(image_np)
-
-    # Draw boxes
-    bounding_box_annotator = sv.BoxAnnotator()
-
-    annotated_image = bounding_box_annotator.annotate(
-        scene=image_np.copy(),
-        detections=detections
+    uploaded_image = st.file_uploader(
+        "Upload Image",
+        type=["jpg", "jpeg", "png"]
     )
 
-    st.image(
-        annotated_image,
-        caption="Detected Objects",
-        use_container_width=True
+    if uploaded_image:
+
+        image = Image.open(uploaded_image).convert("RGB")
+        image_np = np.array(image)
+
+        detections = model.predict(image_np)
+
+        box_annotator = sv.BoxAnnotator()
+
+        annotated_image = box_annotator.annotate(
+            scene=image_np.copy(),
+            detections=detections
+        )
+
+        st.image(
+            annotated_image,
+            caption="Detected Objects",
+            use_container_width=True
+        )
+
+# ---------------- VIDEO ----------------
+
+if option == "Video":
+
+    uploaded_video = st.file_uploader(
+        "Upload Video",
+        type=["mp4", "avi", "mov"]
     )
 
-    st.subheader("Detected Objects")
+    if uploaded_video:
 
-    for name, conf in zip(
-        detections.data["class_name"],
-        detections.confidence
-    ):
-        st.write(f"✅ {name} ({conf:.2f})")
+        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        temp_file.write(uploaded_video.read())
+
+        cap = cv2.VideoCapture(temp_file.name)
+
+        stframe = st.empty()
+
+        box_annotator = sv.BoxAnnotator()
+
+        while cap.isOpened():
+
+            ret, frame = cap.read()
+
+            if not ret:
+                break
+
+            detections = model.predict(frame)
+
+            annotated_frame = box_annotator.annotate(
+                scene=frame.copy(),
+                detections=detections
+            )
+
+            stframe.image(
+                annotated_frame,
+                channels="BGR",
+                use_container_width=True
+            )
+
+        cap.release()
