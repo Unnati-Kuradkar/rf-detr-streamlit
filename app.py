@@ -61,10 +61,7 @@ if input_type == "Image":
 
     if uploaded_file:
 
-        image = Image.open(
-            uploaded_file
-        ).convert("RGB")
-
+        image = Image.open(uploaded_file).convert("RGB")
         image_np = np.array(image)
 
         st.image(
@@ -78,33 +75,33 @@ if input_type == "Image":
             detections = model.predict(image_np)
 
             box_annotator = sv.BoxAnnotator()
-    label_annotator = sv.LabelAnnotator()
+            label_annotator = sv.LabelAnnotator()
 
-    labels = []
+            labels = []
 
-    if (
-        hasattr(detections, "data")
-        and "class_name" in detections.data
-    ):
+            if (
+                hasattr(detections, "data")
+                and "class_name" in detections.data
+            ):
 
-    labels = [
-        f"{cls} {conf:.2f}"
-        for cls, conf in zip(
-            detections.data["class_name"],
-            detections.confidence
-        )
-    ]
+                labels = [
+                    f"{cls} {conf:.2f}"
+                    for cls, conf in zip(
+                        detections.data["class_name"],
+                        detections.confidence
+                    )
+                ]
 
-annotated_image = box_annotator.annotate(
-    scene=image_np.copy(),
-    detections=detections
-)
+            annotated_image = box_annotator.annotate(
+                scene=image_np.copy(),
+                detections=detections
+            )
 
-annotated_image = label_annotator.annotate(
-    scene=annotated_image,
-    detections=detections,
-    labels=labels
-)
+            annotated_image = label_annotator.annotate(
+                scene=annotated_image,
+                detections=detections,
+                labels=labels
+            )
 
         st.image(
             annotated_image,
@@ -112,36 +109,30 @@ annotated_image = label_annotator.annotate(
             use_container_width=True
         )
 
-        total_objects = len(detections.xyxy)
-
         st.success(
-            f"🎯 Total Objects Detected: {total_objects}"
+            f"🎯 Total Objects Detected: {len(detections.xyxy)}"
         )
+
         st.subheader("📋 Detection Details")
 
-    if (
-        hasattr(detections, "data")
-        and "class_name" in detections.data
-    ):
+        if (
+            hasattr(detections, "data")
+            and "class_name" in detections.data
+        ):
 
-    for i, box in enumerate(detections.xyxy):
+            for i, box in enumerate(detections.xyxy):
 
-        x1, y1, x2, y2 = box
+                x1, y1, x2, y2 = box
 
-        width = int(x2 - x1)
-        height = int(y2 - y1)
+                width = int(x2 - x1)
+                height = int(y2 - y1)
 
-        name = detections.data["class_name"][i]
-        conf = detections.confidence[i]
+                name = detections.data["class_name"][i]
+                conf = detections.confidence[i]
 
-        st.write(
-            f"""
-            🔹 {name}
-            | Confidence: {conf:.2f}
-            | Width: {width}px
-            | Height: {height}px
-            """
-        )
+                st.write(
+                    f"🔹 {name} | Confidence: {conf:.2f} | Width: {width}px | Height: {height}px"
+                )
 
         object_counts = {}
 
@@ -151,26 +142,19 @@ annotated_image = label_annotator.annotate(
         ):
 
             for cls in detections.data["class_name"]:
-
-                object_counts[cls] = (
-                    object_counts.get(cls, 0) + 1
-                )
+                object_counts[cls] = object_counts.get(cls, 0) + 1
 
         if object_counts:
 
             st.subheader("📊 Object Summary")
 
-            for obj, count in sorted(
-                object_counts.items()
-            ):
-                st.write(
-                    f"✅ {obj}: {count}"
-                )
-
+            for obj, count in sorted(object_counts.items()):
+                st.write(f"✅ {obj}: {count}")
 # =================================================
-# ==========================
+# ==================================================
 # VIDEO DETECTION
-# ==========================
+# ==================================================
+
 if input_type == "Video":
 
     st.success("🎥 VIDEO MODE ACTIVE")
@@ -187,17 +171,20 @@ if input_type == "Video":
 
         st.video(uploaded_video)
 
-        st.write("Video Name:", uploaded_video.name)
-        st.write("Video Size:", round(uploaded_video.size / (1024 * 1024), 2), "MB")
-
-        start_btn = st.button(
-            "▶ Start Detection",
-            key="start_detection_btn"
+        st.write(
+            "Video Size:",
+            round(uploaded_video.size / (1024 * 1024), 2),
+            "MB"
         )
 
-        if start_btn:
-            st.success("🚀 Detection started...")
-                        with st.spinner("Processing video..."):
+        if st.button(
+            "▶ Start Detection",
+            key="start_detection_btn"
+        ):
+
+            st.success("🚀 Detection Started")
+
+            with st.spinner("Processing Video..."):
 
                 temp_video = tempfile.NamedTemporaryFile(
                     delete=False,
@@ -216,13 +203,13 @@ if input_type == "Video":
 
                 frame_placeholder = st.empty()
 
-                box_annotator = sv.BoxAnnotator()
-                label_annotator = sv.LabelAnnotator()
+                frame_count = 0
+                processed_frames = 0
 
                 total_detected = {}
 
-                frame_count = 0
-                processed_frames = 0
+                box_annotator = sv.BoxAnnotator()
+                label_annotator = sv.LabelAnnotator()
 
                 while cap.isOpened():
 
@@ -233,6 +220,7 @@ if input_type == "Video":
 
                     frame_count += 1
 
+                    # Fast Processing
                     if frame_count % 120 != 0:
                         continue
 
@@ -268,6 +256,7 @@ if input_type == "Video":
                         ]
 
                         for cls in detections.data["class_name"]:
+
                             total_detected[cls] = (
                                 total_detected.get(cls, 0)
                                 + 1
@@ -299,9 +288,25 @@ if input_type == "Video":
                 "📊 Objects Found In Video"
             )
 
-            for obj, count in sorted(
-                total_detected.items()
-            ):
-                st.write(
-                    f"✅ {obj}: {count}"
+            if len(total_detected) == 0:
+
+                st.warning(
+                    "No Objects Detected"
                 )
+
+            else:
+
+                total_objects = sum(
+                    total_detected.values()
+                )
+
+                st.success(
+                    f"🎯 Total Objects Detected: {total_objects}"
+                )
+
+                for obj, count in sorted(
+                    total_detected.items()
+                ):
+                    st.write(
+                        f"✅ {obj}: {count}"
+                    )
