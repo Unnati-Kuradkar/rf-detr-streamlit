@@ -78,11 +78,33 @@ if input_type == "Image":
             detections = model.predict(image_np)
 
             box_annotator = sv.BoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
 
-            annotated_image = box_annotator.annotate(
-                scene=image_np.copy(),
-                detections=detections
-            )
+    labels = []
+
+    if (
+        hasattr(detections, "data")
+        and "class_name" in detections.data
+    ):
+
+    labels = [
+        f"{cls} {conf:.2f}"
+        for cls, conf in zip(
+            detections.data["class_name"],
+            detections.confidence
+        )
+    ]
+
+annotated_image = box_annotator.annotate(
+    scene=image_np.copy(),
+    detections=detections
+)
+
+annotated_image = label_annotator.annotate(
+    scene=annotated_image,
+    detections=detections,
+    labels=labels
+)
 
         st.image(
             annotated_image,
@@ -94,6 +116,31 @@ if input_type == "Image":
 
         st.success(
             f"🎯 Total Objects Detected: {total_objects}"
+        )
+        st.subheader("📋 Detection Details")
+
+    if (
+        hasattr(detections, "data")
+        and "class_name" in detections.data
+    ):
+
+    for i, box in enumerate(detections.xyxy):
+
+        x1, y1, x2, y2 = box
+
+        width = int(x2 - x1)
+        height = int(y2 - y1)
+
+        name = detections.data["class_name"][i]
+        conf = detections.confidence[i]
+
+        st.write(
+            f"""
+            🔹 {name}
+            | Confidence: {conf:.2f}
+            | Width: {width}px
+            | Height: {height}px
+            """
         )
 
         object_counts = {}
@@ -150,3 +197,111 @@ if input_type == "Video":
 
         if start_btn:
             st.success("🚀 Detection started...")
+                        with st.spinner("Processing video..."):
+
+                temp_video = tempfile.NamedTemporaryFile(
+                    delete=False,
+                    suffix=".mp4"
+                )
+
+                temp_video.write(
+                    uploaded_video.read()
+                )
+
+                temp_video.close()
+
+                cap = cv2.VideoCapture(
+                    temp_video.name
+                )
+
+                frame_placeholder = st.empty()
+
+                box_annotator = sv.BoxAnnotator()
+                label_annotator = sv.LabelAnnotator()
+
+                total_detected = {}
+
+                frame_count = 0
+                processed_frames = 0
+
+                while cap.isOpened():
+
+                    ret, frame = cap.read()
+
+                    if not ret:
+                        break
+
+                    frame_count += 1
+
+                    if frame_count % 120 != 0:
+                        continue
+
+                    processed_frames += 1
+
+                    frame = cv2.resize(
+                        frame,
+                        (640, 360)
+                    )
+
+                    frame_rgb = cv2.cvtColor(
+                        frame,
+                        cv2.COLOR_BGR2RGB
+                    )
+
+                    detections = model.predict(
+                        frame_rgb
+                    )
+
+                    labels = []
+
+                    if (
+                        hasattr(detections, "data")
+                        and "class_name" in detections.data
+                    ):
+
+                        labels = [
+                            f"{cls} {conf:.2f}"
+                            for cls, conf in zip(
+                                detections.data["class_name"],
+                                detections.confidence
+                            )
+                        ]
+
+                        for cls in detections.data["class_name"]:
+                            total_detected[cls] = (
+                                total_detected.get(cls, 0)
+                                + 1
+                            )
+
+                    annotated_frame = box_annotator.annotate(
+                        scene=frame_rgb.copy(),
+                        detections=detections
+                    )
+
+                    annotated_frame = label_annotator.annotate(
+                        scene=annotated_frame,
+                        detections=detections,
+                        labels=labels
+                    )
+
+                    frame_placeholder.image(
+                        annotated_frame,
+                        use_container_width=True
+                    )
+
+                cap.release()
+
+            st.success(
+                f"✅ Video Detection Completed | Processed Frames: {processed_frames}"
+            )
+
+            st.subheader(
+                "📊 Objects Found In Video"
+            )
+
+            for obj, count in sorted(
+                total_detected.items()
+            ):
+                st.write(
+                    f"✅ {obj}: {count}"
+                )
