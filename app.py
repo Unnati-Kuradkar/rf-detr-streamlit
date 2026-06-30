@@ -202,16 +202,22 @@ if input_type == "Video":
                     temp_video.name
                 )
 
-               frame_placeholder = st.empty()
+                              cap = cv2.VideoCapture(
+                    temp_video.name
+                )
 
-               frame_count = 0
-               processed_frames = 0
+                frame_placeholder = st.empty()
 
-               unique_objects = {}
-               tracker = ByteTrack()
-               box_annotator = sv.BoxAnnotator()
-               label_annotator = sv.LabelAnnotator()
-               while cap.isOpened():
+                frame_count = 0
+                processed_frames = 0
+
+                unique_objects = {}
+                tracker = ByteTrack()
+
+                box_annotator = sv.BoxAnnotator()
+                label_annotator = sv.LabelAnnotator()
+
+                while cap.isOpened():
 
                     ret, frame = cap.read()
 
