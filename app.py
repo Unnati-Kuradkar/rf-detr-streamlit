@@ -202,19 +202,16 @@ if input_type == "Video":
                     temp_video.name
                 )
 
-                frame_placeholder = st.empty()
+               frame_placeholder = st.empty()
 
                frame_count = 0
                processed_frames = 0
 
                unique_objects = {}
-
                tracker = ByteTrack()
-
                box_annotator = sv.BoxAnnotator()
                label_annotator = sv.LabelAnnotator()
-
-                while cap.isOpened():
+               while cap.isOpened():
 
                     ret, frame = cap.read()
 
@@ -262,12 +259,19 @@ if input_type == "Video":
                         ]
 
                         for cls, track_id in zip(
-                            detections.data["class_name"],
-                            detections.tracker_id
+                        detections.data["class_name"],
+                        detections.tracker_id
                         ):
 
                         if track_id is None:
                             continue
+
+                        if cls not in unique_objects:
+                            unique_objects[cls] = set()
+
+                        unique_objects[cls].add(
+                            int(track_id)
+                        )
 
                         if cls not in unique_objects:
                             unique_objects[cls] = set()
@@ -297,19 +301,19 @@ if input_type == "Video":
             st.success(
                 f"✅ Video Detection Completed | Processed Frames: {processed_frames}"
             )
-
             st.subheader(
-                "📊 Objects Found In Video"
+                "📊 Unique Objects Found In Video"
             )
 
             if len(unique_objects) == 0:
+
                 st.warning(
                 "No Objects Detected"
             )
 
             else:
 
-            total_unique = 0
+                total_unique = 0
 
             for ids in unique_objects.values():
                 total_unique += len(ids)
@@ -325,3 +329,5 @@ if input_type == "Video":
             st.write(
                 f"✅ {obj}: {len(ids)}"
             )
+
+           
