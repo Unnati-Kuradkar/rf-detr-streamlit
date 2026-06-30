@@ -269,15 +269,15 @@ if input_type == "Video":
                         detections.tracker_id
                         ):
 
-                        if track_id is None:
-                            continue
+                            if track_id is None:
+                                continue
 
-                        if cls not in unique_objects:
-                            unique_objects[cls] = set()
+                            if cls not in unique_objects:
+                                unique_objects[cls] = set()
 
-                        unique_objects[cls].add(
+                            unique_objects[cls].add(
                             int(track_id)
-                        )
+                            )
 
                         if cls not in unique_objects:
                             unique_objects[cls] = set()
