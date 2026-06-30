@@ -202,7 +202,7 @@ if input_type == "Video":
                     temp_video.name
                 )
 
-                              cap = cv2.VideoCapture(
+                cap = cv2.VideoCapture(
                     temp_video.name
                 )
 
