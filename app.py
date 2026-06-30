@@ -151,7 +151,6 @@ if input_type == "Image":
 
             for obj, count in sorted(object_counts.items()):
                 st.write(f"✅ {obj}: {count}")
-# =================================================
 # ==================================================
 # VIDEO DETECTION
 # ==================================================
@@ -202,16 +201,13 @@ if input_type == "Video":
                     temp_video.name
                 )
 
-                cap = cv2.VideoCapture(
-                    temp_video.name
-                )
-
                 frame_placeholder = st.empty()
 
                 frame_count = 0
                 processed_frames = 0
 
                 unique_objects = {}
+
                 tracker = ByteTrack()
 
                 box_annotator = sv.BoxAnnotator()
@@ -245,6 +241,7 @@ if input_type == "Video":
                     detections = model.predict(
                         frame_rgb
                     )
+
                     detections = tracker.update_with_detections(
                         detections
                     )
@@ -265,8 +262,8 @@ if input_type == "Video":
                         ]
 
                         for cls, track_id in zip(
-                        detections.data["class_name"],
-                        detections.tracker_id
+                            detections.data["class_name"],
+                            detections.tracker_id
                         ):
 
                             if track_id is None:
@@ -276,15 +273,8 @@ if input_type == "Video":
                                 unique_objects[cls] = set()
 
                             unique_objects[cls].add(
-                            int(track_id)
+                                int(track_id)
                             )
-
-                        if cls not in unique_objects:
-                            unique_objects[cls] = set()
-
-                        unique_objects[cls].add(
-                            int(track_id)
-                        )
 
                     annotated_frame = box_annotator.annotate(
                         scene=frame_rgb.copy(),
@@ -307,6 +297,7 @@ if input_type == "Video":
             st.success(
                 f"✅ Video Detection Completed | Processed Frames: {processed_frames}"
             )
+
             st.subheader(
                 "📊 Unique Objects Found In Video"
             )
@@ -314,26 +305,24 @@ if input_type == "Video":
             if len(unique_objects) == 0:
 
                 st.warning(
-                "No Objects Detected"
-            )
+                    "No Objects Detected"
+                )
 
             else:
 
                 total_unique = 0
 
-            for ids in unique_objects.values():
-                total_unique += len(ids)
+                for ids in unique_objects.values():
+                    total_unique += len(ids)
 
-            st.success(
-                f"🎯 Total Unique Objects: {total_unique}"
-            )
+                st.success(
+                    f"🎯 Total Unique Objects: {total_unique}"
+                )
 
-            for obj, ids in sorted(
-                unique_objects.items()
-            ):
+                for obj, ids in sorted(
+                    unique_objects.items()
+                ):
 
-            st.write(
-                f"✅ {obj}: {len(ids)}"
-            )
-
-           
+                    st.write(
+                        f"✅ {obj}: {len(ids)}"
+                    )
