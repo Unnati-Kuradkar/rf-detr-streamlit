@@ -73,7 +73,15 @@ if input_type == "Image":
 
         with st.spinner("Detecting Objects..."):
 
-            detections = model.predict(image_np)
+            # RF-DETR Detection
+            detections = model.predict(
+                image_np
+            )
+
+            # Remove low confidence detections
+            detections = detections[
+                detections.confidence > 0.5
+            ]
 
             box_annotator = sv.BoxAnnotator()
             label_annotator = sv.LabelAnnotator()
@@ -150,7 +158,9 @@ if input_type == "Image":
             st.subheader("📊 Object Summary")
 
             for obj, count in sorted(object_counts.items()):
-                st.write(f"✅ {obj}: {count}")
+                st.write(
+                    f"✅ {obj}: {count}"
+                )
 # ==================================================
 # VIDEO DETECTION
 # ==================================================
@@ -208,7 +218,11 @@ if input_type == "Video":
 
                 unique_objects = {}
 
-                tracker = ByteTrack()
+                tracker = ByteTrack(
+                    track_activation_threshold=0.6,
+                    minimum_matching_threshold=0.9,
+                    lost_track_buffer=30
+                )
 
                 box_annotator = sv.BoxAnnotator()
                 label_annotator = sv.LabelAnnotator()
@@ -222,8 +236,8 @@ if input_type == "Video":
 
                     frame_count += 1
 
-                    # Fast Processing
-                    if frame_count % 10 != 0:
+                    # Process every 2nd frame
+                    if frame_count % 2 != 0:
                         continue
 
                     processed_frames += 1
@@ -238,10 +252,17 @@ if input_type == "Video":
                         cv2.COLOR_BGR2RGB
                     )
 
+                    # RF-DETR Detection
                     detections = model.predict(
                         frame_rgb
                     )
 
+                    # Remove low confidence detections
+                    detections = detections[
+                        detections.confidence > 0.5
+                    ]
+
+                    # Tracking
                     detections = tracker.update_with_detections(
                         detections
                     )
@@ -310,10 +331,10 @@ if input_type == "Video":
 
             else:
 
-                total_unique = 0
-
-                for ids in unique_objects.values():
-                    total_unique += len(ids)
+                total_unique = sum(
+                    len(ids)
+                    for ids in unique_objects.values()
+                )
 
                 st.success(
                     f"🎯 Total Unique Objects: {total_unique}"
