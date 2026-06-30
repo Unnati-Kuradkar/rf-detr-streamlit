@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 from rfdetr import RFDETRNano
 import supervision as sv
-from supervision.tracker.byte_tracker import ByteTrack
+from supervision import ByteTrack
 import cv2
 import tempfile
 
